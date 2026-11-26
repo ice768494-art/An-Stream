@@ -1,11 +1,12 @@
-import html
 import re
 from urllib.parse import quote_plus
 
 from aiohttp import web
 
-from info import LOG_CHANNEL
+from info import CHANNEL_LINK, CHANNEL_NAME, LOG_CHANNEL, URL
+from player import build_page
 from util.file_properties import get_hash, get_media_file_size, get_mime, get_name
+from util.human_readable import humanbytes
 
 routes = web.RouteTableDef()
 CHUNK = 1024 * 1024  # Pyrogram streams in 1 MiB chunks
@@ -26,7 +27,7 @@ async def fetch_message(request, msg_id: int):
 
 @routes.get("/")
 async def index(request):
-    return web.Response(text="File to Link bot is running.")
+    return web.Response(text=f"{CHANNEL_NAME} File to Link is running.")
 
 
 @routes.get(r"/watch/{id:\d+}/{name}")
@@ -34,17 +35,16 @@ async def watch(request):
     msg_id = int(request.match_info["id"])
     msg = await fetch_message(request, msg_id)
     name = get_name(msg)
-    src = f"/{msg_id}/{quote_plus(name)}?hash={get_hash(msg)}"
-    mime = get_mime(msg)
-    tag = "audio" if mime.startswith("audio") else "video"
-    page = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{html.escape(name)}</title>
-<style>body{{margin:0;background:#111;color:#eee;font-family:sans-serif;text-align:center}}
-{tag}{{width:100%;max-height:85vh;background:#000}}a{{color:#6cf}}</style></head>
-<body><h3>{html.escape(name)}</h3>
-<{tag} controls autoplay preload="metadata"><source src="{src}" type="{html.escape(mime)}"></{tag}>
-<p><a href="{src}&dl=1">Download</a></p></body></html>"""
+    # Absolute URL (built from the configured public URL) so external players can open it
+    stream_url = f"{URL}{msg_id}/{quote_plus(name)}?hash={get_hash(msg)}"
+    page = build_page(
+        name=name,
+        size=humanbytes(get_media_file_size(msg)),
+        mime=get_mime(msg),
+        stream_url=stream_url,
+        brand=CHANNEL_NAME,
+        channel_link=CHANNEL_LINK,
+    )
     return web.Response(text=page, content_type="text/html")
 
 
