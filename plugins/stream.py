@@ -22,27 +22,33 @@ async def start(client, message):
 
 @Client.on_message(filters.private & media_filter)
 async def handle_media(client, message):
-    if not STREAM_MODE or not allowed(message.from_user.id):
-        return
-    log_msg = await message.copy(LOG_CHANNEL)
-    name = quote_plus(get_name(log_msg))
-    h = get_hash(log_msg)
-    stream = f"{URL}watch/{log_msg.id}/{name}?hash={h}"
-    download = f"{URL}{log_msg.id}/{name}?hash={h}&dl=1"
+    if not STREAM_MODE:
+        return await message.reply_text("STREAM_MODE is off.")
+    if not allowed(message.from_user.id):
+        return await message.reply_text("You are not allowed to use this bot.")
 
-    await log_msg.reply_text(
-        f"Link generated for #{message.from_user.id}\nUser: {message.from_user.mention}\nFile: {get_name(log_msg)}",
-        quote=True,
-        disable_web_page_preview=True,
-    )
-    await message.reply_text(
+    try:
+        log_msg = await message.copy(LOG_CHANNEL)
+        name = quote_plus(get_name(log_msg))
+        h = get_hash(log_msg)
+        stream = f"{URL}watch/{log_msg.id}/{name}?hash={h}"
+        download = f"{URL}{log_msg.id}/{name}?hash={h}&dl=1"
+    except Exception as e:
+        return await message.reply_text(f"Could not save file to log channel: {e}")
+
+    text = (
         f"<b>Your link is ready!</b>\n\n<b>File:</b> {get_name(log_msg)}\n"
         f"<b>Size:</b> {humanbytes(get_media_file_size(log_msg))}\n\n"
-        f"<b>Download:</b> {download}\n<b>Watch:</b> {stream}",
-        quote=True,
-        disable_web_page_preview=True,
-        reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("Stream", url=stream),
-            InlineKeyboardButton("Download", url=download),
-        ]]),
+        f"<b>Download:</b> {download}\n<b>Watch:</b> {stream}"
     )
+    try:
+        await message.reply_text(
+            text,
+            quote=True,
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("Stream", url=stream),
+                InlineKeyboardButton("Download", url=download),
+            ]]),
+        )
+    except Exception as e:
+        await message.reply_text(text + f"\n\n(Buttons failed: {e})", quote=True)
