@@ -4,7 +4,7 @@ from urllib.parse import quote_plus
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from info import ALLOWED_USERS, LOG_CHANNEL, STREAM_MODE, URL
+from info import ALLOWED_USERS, CHANNEL_NAME, LOG_CHANNEL, STREAM_MODE, URL
 from util.file_properties import get_hash, get_media_file_size, get_name
 from util.human_readable import humanbytes
 
@@ -17,7 +17,9 @@ def allowed(user_id: int) -> bool:
 
 @Client.on_message(filters.private & filters.command("start"))
 async def start(client, message):
-    await message.reply_text("Send me a file or video and I'll give you stream and download links.")
+    await message.reply_text(
+        f"Welcome to <b>{CHANNEL_NAME}</b>!\n\nSend me a file or video and I'll give you stream and download links."
+    )
 
 
 @Client.on_message(filters.private & media_filter)
@@ -39,7 +41,7 @@ async def handle_media(client, message):
     text = (
         f"<b>Your link is ready!</b>\n\n<b>File:</b> {get_name(log_msg)}\n"
         f"<b>Size:</b> {humanbytes(get_media_file_size(log_msg))}\n\n"
-        f"<b>Download:</b> {download}\n<b>Watch:</b> {stream}"
+        f"<b>Download:</b> {download}\n<b>Watch:</b> {stream}\n\n<i>Powered by {CHANNEL_NAME}</i>"
     )
     try:
         await message.reply_text(
