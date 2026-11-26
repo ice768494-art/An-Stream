@@ -44,11 +44,10 @@ async def handle_media(client, message):
     try:
         await message.reply_text(
             text,
-            quote=True,
             reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton("Stream", url=stream),
                 InlineKeyboardButton("Download", url=download),
             ]]),
         )
     except Exception as e:
-        await message.reply_text(text + f"\n\n(Buttons failed: {e})", quote=True)
+        await message.reply_text(text + f"\n\n(Buttons failed: {e})")
