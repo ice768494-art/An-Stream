@@ -10,7 +10,7 @@ class JsonDB:
 
     def __init__(self, path="data.json"):
         self.path = path
-        self.d = {"users": {}, "banned": [], "files": []}
+        self.d = {"users": {}, "banned": [], "files": [], "premium": {}}
         if os.path.exists(path):
             try:
                 with open(path) as f:
@@ -62,6 +62,27 @@ class JsonDB:
     async def banned_count(self):
         return len(self.d["banned"])
 
+    async def add_premium(self, uid, expires):
+        self.d["premium"][str(uid)] = expires
+        self._save()
+
+    async def remove_premium(self, uid):
+        self.d["premium"].pop(str(uid), None)
+        self._save()
+
+    async def premium_expiry(self, uid):
+        e = self.d["premium"].get(str(uid))
+        return e if e and e > time.time() else None
+
+    async def premium_count(self):
+        now = time.time()
+        return sum(1 for e in self.d["premium"].values() if e > now)
+
+    async def premium_list(self, n=20):
+        now = time.time()
+        items = sorted(((int(k), e) for k, e in self.d["premium"].items() if e > now), key=lambda x: x[1])[:n]
+        return [{"id": k, "expires": e} for k, e in items]
+
     async def add_file(self, rec):
         self.d["files"].append(rec)
         self.d["files"] = self.d["files"][-500:]
@@ -82,6 +103,7 @@ class MongoDB:
         self.users = database.users
         self.banned = database.banned
         self.files = database.files
+        self.premium = database.premium
 
     async def add_user(self, uid, name=""):
         r = await self.users.update_one(
@@ -115,6 +137,26 @@ class MongoDB:
 
     async def banned_count(self):
         return await self.banned.count_documents({})
+
+    async def add_premium(self, uid, expires):
+        await self.premium.update_one({"_id": uid}, {"$set": {"expires": expires}}, upsert=True)
+
+    async def remove_premium(self, uid):
+        await self.premium.delete_one({"_id": uid})
+
+    async def premium_expiry(self, uid):
+        d = await self.premium.find_one({"_id": uid})
+        e = d.get("expires") if d else None
+        return e if e and e > time.time() else None
+
+    async def premium_count(self):
+        return await self.premium.count_documents({"expires": {"$gt": time.time()}})
+
+    async def premium_list(self, n=20):
+        out = []
+        async for d in self.premium.find({"expires": {"$gt": time.time()}}).sort("expires", 1).limit(n):
+            out.append({"id": d["_id"], "expires": d["expires"]})
+        return out
 
     async def add_file(self, rec):
         await self.files.insert_one(dict(rec))
