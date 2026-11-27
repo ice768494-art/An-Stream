@@ -4,7 +4,7 @@ from pyrogram.types import InlineKeyboardButton as Btn
 from pyrogram.types import InlineKeyboardMarkup as Markup
 
 from db import db
-from info import CHANNEL_LINK, CHANNEL_NAME, LOG_CHANNEL
+from info import CHANNEL_LINK, CHANNEL_NAME, LOG_CHANNEL, START_PIC
 from util.file_properties import get_hash
 from util.forcesub import join_markup, missing_channels
 
@@ -83,6 +83,11 @@ async def start(client, message):
             await message.reply_text(f"Could not send the file: {e}")
         return
 
+    if START_PIC:
+        try:
+            return await message.reply_photo(START_PIC, caption=home_text(user), reply_markup=home_markup())
+        except Exception as e:
+            print(f"[start] could not send START_PIC: {e}")
     await message.reply_text(home_text(user), reply_markup=home_markup())
 
 
@@ -99,7 +104,10 @@ async def menu(client, query):
     else:
         text, markup = ABOUT_TEXT, back_markup()
     try:
-        await query.message.edit_text(text, reply_markup=markup)
+        if query.message.photo:
+            await query.message.edit_caption(text, reply_markup=markup)
+        else:
+            await query.message.edit_text(text, reply_markup=markup)
     except MessageNotModified:
         pass
     await query.answer()
