@@ -14,6 +14,7 @@ if not URL.endswith("/"):
 ALLOWED_USERS = [int(x) for x in os.environ.get("ALLOWED_USERS", "").split(",") if x.strip()]
 # Branding shown on the player page
 CHANNEL_NAME = os.environ.get("CHANNEL_NAME", "CodeRips")
+START_PIC = os.environ.get("START_PIC", "https://i.ibb.co/8gjQJFv4/da6bee925908.jpg")  # set empty to disable
 CHANNEL_LINK = os.environ.get("CHANNEL_LINK", "")  # e.g. https://t.me/yourchannel (optional)
 
 # ---- Admin / database / force-sub ----
