@@ -28,3 +28,10 @@ FORCE_SUB = [x.strip() for x in os.environ.get("FORCE_SUB", "").split(",") if x.
 # Web dashboard login (dashboard is disabled if ADMIN_PASSWORD is empty)
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+
+# ---- Premium / size limit ----
+# Files bigger than this need Premium (admins are always allowed)
+FREE_LIMIT_GB = float(os.environ.get("FREE_LIMIT_GB", "2"))
+FREE_LIMIT = int(FREE_LIMIT_GB * 1024 ** 3)
+# Where users go to buy Premium, e.g. https://t.me/youradmin (shown as a button)
+PREMIUM_CONTACT = os.environ.get("PREMIUM_CONTACT", "")
