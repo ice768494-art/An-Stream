@@ -6,10 +6,11 @@ from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from db import db
-from info import ALLOWED_USERS, CHANNEL_NAME, LOG_CHANNEL, STREAM_MODE, URL
+from info import ALLOWED_USERS, CHANNEL_NAME, FREE_LIMIT, FREE_LIMIT_GB, LOG_CHANNEL, PREMIUM_CONTACT, STREAM_MODE, URL
 from util.file_properties import get_hash, get_media_file_size, get_name
 from util.forcesub import join_markup, missing_channels
 from util.human_readable import humanbytes
+from util.premium import has_premium
 
 media_filter = filters.video | filters.document | filters.audio
 
@@ -34,6 +35,17 @@ async def handle_media(client, message):
         return await message.reply_text(
             f"<b>Access required</b>\n\nPlease join the channel(s) below, then send your file again.",
             reply_markup=join_markup(missing),
+        )
+
+    size = get_media_file_size(message)
+    if size > FREE_LIMIT and not await has_premium(db, user.id):
+        markup = InlineKeyboardMarkup([[InlineKeyboardButton("Get Premium", url=PREMIUM_CONTACT)]]) if PREMIUM_CONTACT else None
+        return await message.reply_text(
+            "<b>Premium required</b>\n\n"
+            f"Files larger than <b>{FREE_LIMIT_GB:g} GB</b> are available to Premium members only.\n"
+            f"Your file is <b>{humanbytes(size)}</b>.\n\n"
+            "Upgrade to Premium to create links for large files. Use /premium to check your plan.",
+            reply_markup=markup,
         )
 
     try:
