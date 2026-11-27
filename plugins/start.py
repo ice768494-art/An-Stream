@@ -4,9 +4,10 @@ from pyrogram.types import InlineKeyboardButton as Btn
 from pyrogram.types import InlineKeyboardMarkup as Markup
 
 from db import db
-from info import CHANNEL_LINK, CHANNEL_NAME, LOG_CHANNEL, START_PIC
+from info import CHANNEL_LINK, CHANNEL_NAME, FREE_LIMIT_GB, LOG_CHANNEL, PREMIUM_CONTACT, START_PIC
 from util.file_properties import get_hash
 from util.forcesub import join_markup, missing_channels
+from util.premium import fmt_date, has_premium
 
 
 def home_text(user):
@@ -24,7 +25,8 @@ HELP_TEXT = (
     "2. I reply with a <b>Watch</b> link and a <b>Download</b> link.\n"
     "3. Open the Watch link for the web player, or use the buttons on that page to open the "
     "file in VLC, MX Player and other apps.\n"
-    "4. On the player page, tap <b>Get file on Telegram</b> to receive the file in this chat."
+    "4. On the player page, tap <b>Get file on Telegram</b> to receive the file in this chat.\n\n"
+    f"Files up to <b>{FREE_LIMIT_GB:g} GB</b> are free. Larger files need Premium (see /premium)."
 )
 
 ABOUT_TEXT = (
@@ -89,6 +91,24 @@ async def start(client, message):
         except Exception as e:
             print(f"[start] could not send START_PIC: {e}")
     await message.reply_text(home_text(user), reply_markup=home_markup())
+
+
+@Client.on_message(filters.private & filters.command("premium"))
+async def premium_status(client, message):
+    uid = message.from_user.id
+    expiry = await db.premium_expiry(uid)
+    if expiry:
+        text = f"<b>Premium active</b>\n\nValid until <b>{fmt_date(expiry)}</b>.\nYou can create links for files of any size."
+    elif await has_premium(db, uid):
+        text = "<b>Premium active</b>\n\nYou have admin access with no size limit."
+    else:
+        text = (
+            "<b>Free plan</b>\n\n"
+            f"You can create links for files up to <b>{FREE_LIMIT_GB:g} GB</b>.\n"
+            "Upgrade to Premium for larger files."
+        )
+    markup = Markup([[Btn("Get Premium", url=PREMIUM_CONTACT)]]) if PREMIUM_CONTACT and not expiry else None
+    await message.reply_text(text, reply_markup=markup)
 
 
 @Client.on_callback_query(filters.regex("^(home|help|about|close)$"))
