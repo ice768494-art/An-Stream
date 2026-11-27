@@ -17,6 +17,16 @@ def allowed(user_id: int) -> bool:
 
 @Client.on_message(filters.private & filters.command("start"))
 async def start(client, message):
+    if len(message.command) > 1 and message.command[1].startswith("file_"):
+        try:
+            _, msg_id, h = message.command[1].split("_", 2)
+            log_msg = await client.get_messages(LOG_CHANNEL, int(msg_id))
+            if not log_msg or log_msg.empty or get_hash(log_msg) != h:
+                return await message.reply_text("File not found or link is invalid.")
+            await log_msg.copy(message.chat.id)
+        except Exception as e:
+            await message.reply_text(f"Could not send the file: {e}")
+        return
     await message.reply_text(
         f"Welcome to <b>{CHANNEL_NAME}</b>!\n\nSend me a file or video and I'll give you stream and download links."
     )
