@@ -5,6 +5,7 @@ from pyrogram import Client, filters
 from broadcast import broadcast, progress
 from db import db
 from info import ADMIN_PASSWORD, ADMINS, FORCE_SUB, URL
+from util.premium import fmt_date, grant
 
 admin_only = filters.private & filters.user(ADMINS)
 _tasks = set()
@@ -18,7 +19,10 @@ async def admin_help(client, message):
         "/stats - bot statistics\n"
         "/broadcast - reply to a message to send it to all users\n"
         "/ban <code>user_id</code> - ban a user\n"
-        "/unban <code>user_id</code> - unban a user\n\n"
+        "/unban <code>user_id</code> - unban a user\n"
+        "/addpremium <code>user_id [days]</code> - grant premium (default 30 days)\n"
+        "/removepremium <code>user_id</code> - revoke premium\n"
+        "/premiumusers - list active premium users\n\n"
         f"Web dashboard: {dash}"
     )
 
@@ -30,6 +34,7 @@ async def stats(client, message):
         f"Users: <b>{await db.total_users()}</b>\n"
         f"Files linked: <b>{await db.total_files()}</b>\n"
         f"Banned: <b>{await db.banned_count()}</b>\n"
+        f"Premium users: <b>{await db.premium_count()}</b>\n"
         f"Force-sub channels: <b>{len(FORCE_SUB)}</b>"
     )
 
@@ -72,3 +77,37 @@ async def ban(client, message):
 @Client.on_message(filters.command("unban") & admin_only)
 async def unban(client, message):
     await _moderate(message, False)
+
+
+@Client.on_message(filters.command("addpremium") & admin_only)
+async def add_premium(client, message):
+    args = message.command[1:]
+    if not args or not args[0].isdigit() or (len(args) > 1 and not args[1].isdigit()):
+        return await message.reply_text("Usage: /addpremium user_id [days]")
+    uid, days = int(args[0]), int(args[1]) if len(args) > 1 else 30
+    if not 1 <= days <= 3650:
+        return await message.reply_text("Days must be between 1 and 3650.")
+    expires = await grant(db, uid, days)
+    await message.reply_text(f"Premium granted to <code>{uid}</code> until <b>{fmt_date(expires)}</b>.")
+    try:
+        await client.send_message(uid, f"Your Premium is active until <b>{fmt_date(expires)}</b>. Thank you!")
+    except Exception:
+        pass
+
+
+@Client.on_message(filters.command("removepremium") & admin_only)
+async def remove_premium(client, message):
+    if len(message.command) < 2 or not message.command[1].isdigit():
+        return await message.reply_text("Usage: /removepremium user_id")
+    uid = int(message.command[1])
+    await db.remove_premium(uid)
+    await message.reply_text(f"Premium removed from <code>{uid}</code>.")
+
+
+@Client.on_message(filters.command("premiumusers") & admin_only)
+async def premium_users(client, message):
+    rows = await db.premium_list(30)
+    if not rows:
+        return await message.reply_text("No active premium users.")
+    lines = [f"<code>{r['id']}</code> - until {fmt_date(r['expires'])}" for r in rows]
+    await message.reply_text("<b>Active premium users</b>\n\n" + "\n".join(lines))
