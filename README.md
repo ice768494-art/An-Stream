@@ -10,3 +10,10 @@
 Links stop working if the bot is banned, the log channel is deleted, or the logged message is removed.
 Free Render instances sleep after ~15 min idle.
 Credit: plugin based on TechVJ File-Stream-Bot (@VJ_Bots).
+
+## Extra environment variables
+- ADMINS: admin Telegram user IDs, comma-separated
+- DATABASE_URI: MongoDB connection string (recommended; free MongoDB Atlas works)
+- FORCE_SUB: channels users must join, comma-separated (-100... IDs or @usernames); bot must be admin there
+- ADMIN_PASSWORD (and optional ADMIN_USERNAME, default admin): enables the web dashboard at /admin
+- CHANNEL_NAME (default CodeRips), CHANNEL_LINK (optional)

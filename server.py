@@ -5,6 +5,7 @@ from aiohttp import web
 
 from info import CHANNEL_LINK, CHANNEL_NAME, LOG_CHANNEL, URL
 from player import build_page
+from theme import landing
 from util.file_properties import get_hash, get_media_file_size, get_mime, get_name
 from util.human_readable import humanbytes
 
@@ -27,7 +28,8 @@ async def fetch_message(request, msg_id: int):
 
 @routes.get("/")
 async def index(request):
-    return web.Response(text=f"{CHANNEL_NAME} File to Link is running.")
+    page = landing(CHANNEL_NAME, request.app.get("bot_username", ""), CHANNEL_LINK)
+    return web.Response(text=page, content_type="text/html")
 
 
 @routes.get(r"/watch/{id:\d+}/{name}")

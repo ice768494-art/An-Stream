@@ -4,6 +4,7 @@ from aiohttp import web
 from pyrogram import Client, idle
 
 from info import API_HASH, API_ID, BOT_TOKEN, LOG_CHANNEL, PORT
+from dashboard import dash_routes
 from server import routes
 
 
@@ -23,6 +24,7 @@ async def main():
     app = web.Application()
     app["client"] = client
     app["bot_username"] = me.username or ""
+    app.add_routes(dash_routes)
     app.add_routes(routes)
     runner = web.AppRunner(app)
     await runner.setup()

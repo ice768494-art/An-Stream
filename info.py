@@ -15,3 +15,15 @@ ALLOWED_USERS = [int(x) for x in os.environ.get("ALLOWED_USERS", "").split(",") 
 # Branding shown on the player page
 CHANNEL_NAME = os.environ.get("CHANNEL_NAME", "CodeRips")
 CHANNEL_LINK = os.environ.get("CHANNEL_LINK", "")  # e.g. https://t.me/yourchannel (optional)
+
+# ---- Admin / database / force-sub ----
+# Telegram user IDs of bot admins, comma-separated
+ADMINS = [int(x) for x in os.environ.get("ADMINS", "").split(",") if x.strip()]
+# MongoDB connection string (recommended; without it data is kept in a local JSON file that Render wipes on redeploy)
+DATABASE_URI = os.environ.get("DATABASE_URI", "")
+DATABASE_NAME = os.environ.get("DATABASE_NAME", "filebot")
+# Force-subscribe channels, comma-separated: IDs (-100...) or @usernames. Bot must be admin there.
+FORCE_SUB = [x.strip() for x in os.environ.get("FORCE_SUB", "").split(",") if x.strip()]
+# Web dashboard login (dashboard is disabled if ADMIN_PASSWORD is empty)
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
