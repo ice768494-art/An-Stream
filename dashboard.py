@@ -15,6 +15,7 @@ from db import db
 from info import ADMIN_PASSWORD, ADMIN_USERNAME, CHANNEL_NAME, FORCE_SUB
 from theme import page
 from util.human_readable import humanbytes
+from util.premium import fmt_date, grant
 
 dash_routes = web.RouteTableDef()
 _SECRET = os.urandom(32)
@@ -58,6 +59,7 @@ def _back(msg):
 async def dashboard(request):
     _auth(request)
     users, files, banned = await db.total_users(), await db.total_files(), await db.banned_count()
+    premium = await db.premium_count()
     rfiles, rusers = await db.recent_files(10), await db.recent_users(10)
     t = _token()
 
@@ -90,6 +92,7 @@ async def dashboard(request):
   <div class="card stat"><div class="n">{users}</div><div class="l">Total users</div></div>
   <div class="card stat"><div class="n">{files}</div><div class="l">Files linked</div></div>
   <div class="card stat"><div class="n">{banned}</div><div class="l">Banned users</div></div>
+  <div class="card stat"><div class="n">{premium}</div><div class="l">Premium users</div></div>
   <div class="card stat"><div class="n">{len(FORCE_SUB)}</div><div class="l">Force-sub channels</div></div>
 </div>
 <div class="two">
@@ -102,6 +105,12 @@ async def dashboard(request):
     <input type="text" name="user_id" placeholder="Telegram user ID">
     <div class="row"><button class="btn danger" formaction="/admin/ban" type="submit">Ban user</button>
     <button class="btn" formaction="/admin/unban" type="submit">Unban user</button></div></form></div>
+  <div class="card"><h2 class="s">Premium</h2>
+    <form method="post"><input type="hidden" name="t" value="{t}">
+    <input type="text" name="user_id" placeholder="Telegram user ID">
+    <input type="text" name="days" placeholder="Days (default 30)" style="margin-top:8px">
+    <div class="row"><button class="btn primary" formaction="/admin/premium/add" type="submit">Grant premium</button>
+    <button class="btn" formaction="/admin/premium/remove" type="submit">Revoke</button></div></form></div>
 </div>
 <div class="card" style="margin-bottom:14px"><h2 class="s">Recent files</h2><div class="tbl"><table>
 <tr><th>Name</th><th>Size</th><th>User</th><th>Time</th></tr>{frows}</table></div></div>
@@ -149,3 +158,36 @@ async def ban_user(request):
 @dash_routes.post("/admin/unban")
 async def unban_user(request):
     await _moderate(request, False)
+
+
+@dash_routes.post("/admin/premium/add")
+async def premium_add(request):
+    _auth(request)
+    data = await request.post()
+    _csrf(data)
+    try:
+        uid = int(str(data.get("user_id", "")).strip())
+        days = int(str(data.get("days", "") or 30).strip())
+    except ValueError:
+        _back("Enter valid numbers for user ID and days.")
+    if not 1 <= days <= 3650:
+        _back("Days must be between 1 and 3650.")
+    expires = await grant(db, uid, days)
+    try:
+        await request.app["client"].send_message(uid, f"Your Premium is active until <b>{fmt_date(expires)}</b>. Thank you!")
+    except Exception:
+        pass
+    _back(f"Premium granted to {uid} until {fmt_date(expires)}.")
+
+
+@dash_routes.post("/admin/premium/remove")
+async def premium_remove(request):
+    _auth(request)
+    data = await request.post()
+    _csrf(data)
+    try:
+        uid = int(str(data.get("user_id", "")).strip())
+    except ValueError:
+        _back("Enter a valid numeric user ID.")
+    await db.remove_premium(uid)
+    _back(f"Premium removed from {uid}.")
