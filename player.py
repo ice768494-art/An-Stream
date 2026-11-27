@@ -78,6 +78,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;text-align:center;color
       <div class="grid">
         <a class="btn primary" id="dl" href="#">Download file</a>
         <button class="btn" id="copy">Copy stream link</button>
+        __TG__
       </div>
     </div>
 
@@ -151,7 +152,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;text-align:center;color
 </html>"""
 
 
-def build_page(*, name, size, mime, stream_url, brand, channel_link=""):
+def build_page(*, name, size, mime, stream_url, brand, channel_link="", tg_link=""):
     tag = "audio" if mime.startswith("audio") else "video"
     player = (
         f'<{tag} controls autoplay playsinline preload="metadata">'
@@ -161,8 +162,12 @@ def build_page(*, name, size, mime, stream_url, brand, channel_link=""):
     join = ""
     if channel_link:
         join = f'<a class="pill" href="{html.escape(channel_link, quote=True)}" target="_blank" rel="noopener">Join {html.escape(brand)}</a>'
+    tg = ""
+    if tg_link:
+        tg = f'<a class="btn" href="{html.escape(tg_link, quote=True)}" target="_blank" rel="noopener">Get file on Telegram</a>'
     return (
-        PAGE.replace("__PLAYER__", player)
+        PAGE.replace("__TG__", tg)
+        .replace("__PLAYER__", player)
         .replace("__JOIN__", join)
         .replace("__STREAM_JSON__", json.dumps(stream_url).replace("</", "<\\/"))
         .replace("__TITLE_JSON__", json.dumps(name).replace("</", "<\\/"))

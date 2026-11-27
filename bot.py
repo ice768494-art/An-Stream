@@ -19,8 +19,10 @@ async def main():
     await client.start()
     await client.get_chat(LOG_CHANNEL)  # cache the log channel peer (bot must be admin there)
 
+    me = await client.get_me()
     app = web.Application()
     app["client"] = client
+    app["bot_username"] = me.username or ""
     app.add_routes(routes)
     runner = web.AppRunner(app)
     await runner.setup()

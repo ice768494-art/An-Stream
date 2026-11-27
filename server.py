@@ -37,6 +37,8 @@ async def watch(request):
     name = get_name(msg)
     # Absolute URL (built from the configured public URL) so external players can open it
     stream_url = f"{URL}{msg_id}/{quote_plus(name)}?hash={get_hash(msg)}"
+    username = request.app.get("bot_username", "")
+    tg_link = f"https://t.me/{username}?start=file_{msg_id}_{get_hash(msg)}" if username else ""
     page = build_page(
         name=name,
         size=humanbytes(get_media_file_size(msg)),
@@ -44,6 +46,7 @@ async def watch(request):
         stream_url=stream_url,
         brand=CHANNEL_NAME,
         channel_link=CHANNEL_LINK,
+        tg_link=tg_link,
     )
     return web.Response(text=page, content_type="text/html")
 
